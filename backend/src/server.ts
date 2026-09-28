@@ -3,8 +3,10 @@ import cors from "@fastify/cors";
 import dotenv from "dotenv";
 import { pool } from "./db.js";
 import authRoutes from "./routes/auth.js";
+import productRoutes from "./routes/products.js";
 import jwt from "@fastify/jwt";
 import { authenticate } from "./authGuard.js";
+
 
 dotenv.config();
 
@@ -18,6 +20,10 @@ app.register(cors, {
 
 app.register(authRoutes, {
   prefix: "/api/auth",
+});
+
+app.register(productRoutes, {
+  prefix: "/api/products",
 });
 
 app.register(jwt, {
