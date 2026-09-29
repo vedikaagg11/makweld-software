@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
 type User = {
@@ -128,7 +128,7 @@ function App() {
         <section className="content">
           {page === "dashboard" && <Dashboard user={user} />}
           {page === "sales" && <Placeholder title="Sales" />}
-          {page === "products" && <Placeholder title="Products" />}
+          {page === "products" && <Products user={user} />}
           {page === "employees" && user.role === "admin" && (
             <Placeholder title="Employees" />
           )}
@@ -250,7 +250,239 @@ function Dashboard({ user }: { user: User }) {
   );
 }
 
+function Products({ user }: { user: User }) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [sku, setSku] = useState("");
+  const [price, setPrice] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("");
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          "http://localhost:3000/api/products",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load products");
+        }
+
+        setProducts(data);
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load products",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+    const handleAddProduct = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:3000/api/products",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name,
+            sku,
+            price: Number(price),
+            stock_quantity: Number(stockQuantity || 0),
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add product");
+      }
+
+      setProducts((currentProducts) => [
+        ...currentProducts,
+        data,
+      ]);
+
+      setName("");
+      setSku("");
+      setPrice("");
+      setStockQuantity("");
+      setShowForm(false);
+      setError("");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to add product",
+      );
+    }
+  };
+
+  return (
+  <div>
+    <div className="welcome-card">
+      <h3>Products</h3>
+      <p>Manage your products and stock.</p>
+    </div>
+    <button onClick={() => setShowForm(!showForm)}>
+      {showForm ? "Cancel" : "Add Product"}
+    </button>
+        {showForm && (
+      <form className="product-form" onSubmit={handleAddProduct}>
+        <div className="form-group">
+          <label htmlFor="product-name">Product Name</label>
+          <input
+            id="product-name"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Enter product name"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="product-sku">SKU</label>
+          <input
+            id="product-sku"
+            type="text"
+            value={sku}
+            onChange={(event) => setSku(event.target.value)}
+            placeholder="Enter SKU"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="product-price">Price</label>
+          <input
+            id="product-price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={price}
+            onChange={(event) => setPrice(event.target.value)}
+            placeholder="Enter price"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="product-stock">Stock Quantity</label>
+          <input
+            id="product-stock"
+            type="number"
+            min="0"
+            value={stockQuantity}
+            onChange={(event) => setStockQuantity(event.target.value)}
+            placeholder="Enter stock quantity"
+          />
+        </div>
+
+        <button type="submit">Save Product</button>
+      </form>
+    )}
+
+    {loading && <p>Loading products...</p>}
+
+    {error && <p>{error}</p>}
+
+    {!loading && !error && (
+      <div className="product-table-container">
+        <table className="product-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>SKU</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {products.map((product) => (
+              <tr key={product.id}>
+                <td>{product.name}</td>
+                <td>{product.sku}</td>
+                <td>₹{product.price}</td>
+                <td>{product.stock_quantity}</td>
+                <td>{product.is_active ? "Active" : "Inactive"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+);
+}
+
 function Placeholder({ title }: { title: string }) {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          "http://localhost:3000/api/products",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load products");
+        }
+
+        setProducts(data);
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load products",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
   return (
     <div className="placeholder">
       <h3>{title}</h3>
